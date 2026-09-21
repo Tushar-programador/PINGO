@@ -51,4 +51,13 @@ describe('Index gate', () => {
     renderIndex();
     await waitFor(() => expect(screen.getByTestId('redirect').props.children).toBe('/home'));
   });
+
+  it('shows a retryable error instead of redirecting on a non-404 failure', async () => {
+    useAuthStore.setState({ accessToken: 'a', refreshToken: 'r', isHydrated: true });
+    (api.get as jest.Mock).mockRejectedValue(new ApiError(500, 'SERVER_ERROR', 'boom'));
+
+    renderIndex();
+    await waitFor(() => expect(screen.getByTestId('gate-error-text')).toBeTruthy());
+    expect(screen.queryByTestId('redirect')).toBeNull();
+  });
 });

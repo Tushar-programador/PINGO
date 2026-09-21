@@ -114,3 +114,32 @@ realtime) starts building on top of `live_profiles`/`refresh_tokens`:
   legitimate "user goes live again after their previous profile expired"
   flow, since expired rows are never flipped out of `status = 'ACTIVE'`.
   Keep the time-range-aware constraint when Phase 2 touches this table.
+
+## 9. Carried forward from the mobile foundation's final review
+
+- **No 401 handling and no logout affordance anywhere in `apps/mobile`.**
+  `authStore.logout()` exists and works, but nothing calls it and nothing in
+  `client.ts` reacts to a `401` response by clearing the session. Today that
+  means an expired/revoked access token turns into a permanently broken app
+  with no recovery short of reinstalling — this needs to land before Phase 2
+  adds real usage, and pairs directly with the backend's own deferred
+  refresh-token-reuse-detection item above.
+- **A structural testing gap let a real integration bug through six clean
+  task reviews.** The mobile suite mocks `apps/api` entirely; the backend
+  suite never injects the exact request shape the mobile client actually
+  sends. Neither side's tests describe the real wire contract, which is how
+  a `Content-Type: application/json` header on bodyless requests (breaking
+  Go Live/End Live against the real Fastify backend) went undetected until
+  the final whole-branch review. Phase 2's realtime/matchmaking work should
+  budget for a handful of true end-to-end tests (mobile client → real API,
+  no mocks on either side) covering the state-changing calls, not just unit
+  tests on each side in isolation.
+- **One shared theme module now exists** (`apps/mobile/src/shared/theme/glass.ts`)
+  — new screens in Phase 2 (the realtime match screen, decision buttons,
+  etc.) should extend it rather than each re-declaring the gradient/card/
+  button constants, which is exactly the drift that had already started
+  happening by Task 5 before this got consolidated.
+- **No CI wired up for either app.** Neither `apps/api` nor `apps/mobile`'s
+  test suite runs automatically anywhere — both currently rely on someone
+  remembering to run `pnpm --filter <pkg> test` by hand. Worth setting up
+  before Phase 2 adds enough surface area that a regression could hide.

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { api, ApiError } from '../src/shared/api/client.js';
+import { glass, gradientColors } from '../src/shared/theme/glass.js';
 
 interface LiveProfile {
   id: string;
@@ -72,10 +73,10 @@ export default function HomeScreen() {
     const remainingHours = Math.floor(remainingMinutes / 60);
 
     return (
-      <LinearGradient colors={['#1a1c2e', '#0a0b14']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.background}>
+      <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={glass.background}>
         <View style={styles.liveContainer}>
-          <View style={styles.cardShadow}>
-            <BlurView intensity={50} tint="dark" style={styles.card}>
+          <View style={glass.cardShadow}>
+            <BlurView intensity={50} tint="dark" style={[glass.card, styles.centeredCard]}>
               <Text testID="live-countdown" style={styles.countdownText}>
                 {remainingHours}h {remainingMinutes % 60}m
               </Text>
@@ -87,10 +88,20 @@ export default function HomeScreen() {
               >
                 <Text style={styles.endButtonText}>{endLive.isPending ? 'Ending…' : 'End Live'}</Text>
               </Pressable>
+              {endLive.isError ? (
+                <Text testID="end-live-error-text" style={glass.errorText}>
+                  {(endLive.error as Error).message}
+                </Text>
+              ) : null}
             </BlurView>
           </View>
 
           <Text style={styles.sectionHeading}>Currently live</Text>
+          {discoverQuery.isError ? (
+            <Text testID="discover-error-text" style={glass.errorText}>
+              {(discoverQuery.error as Error).message}
+            </Text>
+          ) : null}
           <FlatList
             testID="discover-list"
             data={discoverQuery.data?.users ?? []}
@@ -110,18 +121,28 @@ export default function HomeScreen() {
   }
 
   return (
-    <LinearGradient colors={['#1a1c2e', '#0a0b14']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.background}>
-      <View style={styles.container}>
-        <View style={styles.cardShadow}>
-          <BlurView intensity={50} tint="dark" style={styles.card}>
+    <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={glass.background}>
+      <View style={glass.container}>
+        <View style={glass.cardShadow}>
+          <BlurView intensity={50} tint="dark" style={[glass.card, styles.centeredCard]}>
             <Text style={styles.heading}>You're not live right now.</Text>
             <Pressable
               testID="go-live-button"
               onPress={() => goLive.mutate()}
-              style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+              style={({ pressed }) => [styles.button, pressed && glass.buttonPressed]}
             >
-              <Text style={styles.buttonText}>{goLive.isPending ? 'Going live…' : 'Go Live'}</Text>
+              <Text style={glass.buttonText}>{goLive.isPending ? 'Going live…' : 'Go Live'}</Text>
             </Pressable>
+            {goLive.isError ? (
+              <Text testID="go-live-error-text" style={glass.errorText}>
+                {(goLive.error as Error).message}
+              </Text>
+            ) : null}
+            {liveQuery.isError ? (
+              <Text testID="live-status-error-text" style={glass.errorText}>
+                {(liveQuery.error as Error).message}
+              </Text>
+            ) : null}
           </BlurView>
         </View>
       </View>
@@ -130,38 +151,13 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
   liveContainer: {
     flex: 1,
     padding: 24,
     paddingTop: 64,
     gap: 16,
   },
-  // Shadow lives on an unclipped wrapper — a shadow and `overflow: hidden`
-  // on the same view cancel each other out on iOS, so the rounded-corner
-  // clip needed for the blur has to happen on the inner view instead.
-  cardShadow: {
-    borderRadius: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  card: {
-    borderRadius: 28,
-    padding: 28,
-    gap: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+  centeredCard: {
     alignItems: 'center',
   },
   heading: {
@@ -198,15 +194,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 4,
     alignSelf: 'stretch',
-  },
-  buttonPressed: {
-    backgroundColor: '#5a4bd1',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   // The "end live" action is intentionally muted — outlined rather than
   // solid-filled — so it doesn't compete visually with primary actions

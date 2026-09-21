@@ -49,8 +49,18 @@ describe('IdentityScreen', () => {
     (api.post as jest.Mock).mockRejectedValue(new Error('Chat identity already exists for this user'));
 
     renderWithQuery();
+    fireEvent.changeText(screen.getByTestId('display-name-input'), 'Priya');
+    fireEvent.changeText(screen.getByTestId('avatar-url-input'), 'https://example.com/a.png');
     fireEvent.press(screen.getByTestId('submit-button'));
 
     await waitFor(() => expect(screen.getByTestId('error-text')).toBeTruthy());
+  });
+
+  it('does not submit while display name or avatar URL is blank', async () => {
+    renderWithQuery();
+    fireEvent.changeText(screen.getByTestId('display-name-input'), 'Priya');
+    fireEvent.press(screen.getByTestId('submit-button'));
+
+    expect(api.post).not.toHaveBeenCalled();
   });
 });

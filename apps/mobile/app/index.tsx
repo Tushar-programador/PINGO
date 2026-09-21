@@ -1,20 +1,14 @@
-import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../src/shared/auth/authStore.js';
 import { api, ApiError } from '../src/shared/api/client.js';
+import { colors, glass, gradientColors } from '../src/shared/theme/glass.js';
 
 export default function Index() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrated = useAuthStore((state) => state.isHydrated);
-  const hydrate = useAuthStore((state) => state.hydrate);
-
-  useEffect(() => {
-    if (!isHydrated) {
-      hydrate();
-    }
-  }, [isHydrated, hydrate]);
 
   const identityQuery = useQuery({
     queryKey: ['chat-identity'],
@@ -29,18 +23,40 @@ export default function Index() {
       }
     },
     enabled: Boolean(accessToken),
+    retry: 0,
   });
 
   if (!isHydrated || (accessToken && identityQuery.isLoading)) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator />
-      </View>
+      <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={glass.background}>
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.text} />
+        </View>
+      </LinearGradient>
     );
   }
 
   if (!accessToken) {
     return <Redirect href="/login" />;
+  }
+
+  if (identityQuery.isError) {
+    return (
+      <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={glass.background}>
+        <View style={styles.center}>
+          <Text testID="gate-error-text" style={glass.errorText}>
+            Something went wrong. Pull down or tap to retry.
+          </Text>
+          <Pressable
+            testID="gate-retry-button"
+            onPress={() => identityQuery.refetch()}
+            style={({ pressed }) => [glass.button, styles.retryButton, pressed && glass.buttonPressed]}
+          >
+            <Text style={glass.buttonText}>Retry</Text>
+          </Pressable>
+        </View>
+      </LinearGradient>
+    );
   }
 
   if (!identityQuery.data) {
@@ -49,3 +65,16 @@ export default function Index() {
 
   return <Redirect href="/home" />;
 }
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 32,
+  },
+});
