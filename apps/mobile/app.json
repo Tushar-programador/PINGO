@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Pingo",
+    "slug": "pingo",
+    "scheme": "pingo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": ["expo-router"]
+  }
+}
