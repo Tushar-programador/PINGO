@@ -15,7 +15,7 @@ export async function authRoutes(app: FastifyInstance) {
     reply.send({ userId: user.id, accessToken, refreshToken });
   });
 
-  app.post('/v1/auth/refresh', async (request, reply) => {
+  app.post('/v1/auth/refresh', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const body = refreshSchema.parse(request.body);
     const tokens = await authService.refresh(body.refreshToken);
     reply.send(tokens);

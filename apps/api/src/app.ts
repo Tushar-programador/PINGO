@@ -24,8 +24,20 @@ export function buildApp(): FastifyInstance {
       return;
     }
 
+    const status = (error as { statusCode?: number }).statusCode;
+    if (typeof status === 'number' && status >= 400 && status < 500) {
+      reply
+        .status(status)
+        .send({ error: { code: (error as { code?: string }).code ?? 'BAD_REQUEST', message: (error as Error).message } });
+      return;
+    }
+
     app.log.error(error);
     reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } });
+  });
+
+  app.setNotFoundHandler((_request, reply) => {
+    reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
   });
 
   app.register(rateLimit, { global: false });

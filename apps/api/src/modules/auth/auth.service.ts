@@ -67,6 +67,16 @@ export async function refresh(refreshToken: string) {
     throw new AppError('INVALID_REFRESH_TOKEN', 'Refresh token is invalid or expired', 401);
   }
 
+  const [user] = await db.select().from(users).where(eq(users.id, revoked.userId));
+
+  if (!user || user.status !== 'ACTIVE') {
+    await db
+      .update(refreshTokens)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(refreshTokens.userId, revoked.userId), isNull(refreshTokens.revokedAt)));
+    throw new AppError('ACCOUNT_NOT_ACTIVE', 'Account is not active', 403);
+  }
+
   return issueTokenPair(revoked.userId);
 }
 

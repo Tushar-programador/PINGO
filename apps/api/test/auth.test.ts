@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { buildApp } from '../src/app.js';
+import { db } from '../src/infrastructure/postgres/db.js';
+import { users } from '../src/infrastructure/postgres/schema.js';
 import { resetDatabase } from './testUtils.js';
 
 describe('auth flow', () => {
@@ -110,5 +113,52 @@ describe('auth flow', () => {
       payload: { email: 'Erin@Example.com', password: 'super-secret-1' },
     });
     expect(loginRes.statusCode).toBe(200);
+  });
+
+  it('rejects a refresh attempt for a suspended account', async () => {
+    const app = buildApp();
+    const registerRes = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/register',
+      payload: { email: 'frank@example.com', password: 'super-secret-1' },
+    });
+    const { userId, refreshToken } = registerRes.json();
+
+    await db.update(users).set({ status: 'SUSPENDED' }).where(eq(users.id, userId));
+
+    const refreshRes = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/refresh',
+      payload: { refreshToken },
+    });
+    expect(refreshRes.statusCode).toBe(403);
+    expect(refreshRes.json().error.code).toBe('ACCOUNT_NOT_ACTIVE');
+  });
+
+  it('returns a 429 with the standard error envelope once the register rate limit is exhausted', async () => {
+    const app = buildApp();
+
+    const responses = [];
+    for (let i = 0; i < 11; i += 1) {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/register',
+        payload: { email: `rate-limit-${i}@example.com`, password: 'super-secret-1' },
+      });
+      responses.push(res);
+    }
+
+    const last = responses[responses.length - 1];
+    expect(last.statusCode).toBe(429);
+    expect(last.json().error).toBeDefined();
+    expect(last.json().error.code).toBeTypeOf('string');
+    expect(last.json().error.message).toBeTypeOf('string');
+  });
+
+  it('returns the standard error envelope for unmatched routes', async () => {
+    const app = buildApp();
+    const res = await app.inject({ method: 'GET', url: '/v1/does-not-exist' });
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
   });
 });
