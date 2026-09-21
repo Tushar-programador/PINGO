@@ -76,7 +76,7 @@ export default function HomeScreen() {
       <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={glass.background}>
         <View style={styles.liveContainer}>
           <View style={glass.cardShadow}>
-            <BlurView intensity={50} tint="dark" style={glass.card}>
+            <BlurView intensity={50} tint="dark" style={[glass.card, styles.centeredCard]}>
               <Text testID="live-countdown" style={styles.countdownText}>
                 {remainingHours}h {remainingMinutes % 60}m
               </Text>
