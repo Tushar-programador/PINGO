@@ -30,42 +30,44 @@ export default function LoginScreen() {
   return (
     <LinearGradient colors={['#1a1c2e', '#0a0b14']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.background}>
       <View style={styles.container}>
-        <BlurView intensity={50} tint="dark" style={styles.card}>
-          <Text style={styles.heading}>Log in</Text>
-          <TextInput
-            testID="email-input"
-            placeholder="Email"
-            placeholderTextColor="rgba(255,255,255,0.45)"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            style={styles.input}
-          />
-          <TextInput
-            testID="password-input"
-            placeholder="Password"
-            placeholderTextColor="rgba(255,255,255,0.45)"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            style={styles.input}
-          />
-          <Pressable
-            testID="submit-button"
-            onPress={() => mutation.mutate()}
-            style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-          >
-            <Text style={styles.buttonText}>{mutation.isPending ? 'Logging in…' : 'Log in'}</Text>
-          </Pressable>
-          {mutation.isError ? (
-            <Text testID="error-text" style={styles.errorText}>
-              {(mutation.error as Error).message}
-            </Text>
-          ) : null}
-          <Link href="/register" style={styles.link}>
-            Need an account? Register
-          </Link>
-        </BlurView>
+        <View style={styles.cardShadow}>
+          <BlurView intensity={50} tint="dark" style={styles.card}>
+            <Text style={styles.heading}>Log in</Text>
+            <TextInput
+              testID="email-input"
+              placeholder="Email"
+              placeholderTextColor="rgba(255,255,255,0.45)"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              style={styles.input}
+            />
+            <TextInput
+              testID="password-input"
+              placeholder="Password"
+              placeholderTextColor="rgba(255,255,255,0.45)"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              style={styles.input}
+            />
+            <Pressable
+              testID="submit-button"
+              onPress={() => mutation.mutate()}
+              style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+            >
+              <Text style={styles.buttonText}>{mutation.isPending ? 'Logging in…' : 'Log in'}</Text>
+            </Pressable>
+            {mutation.isError ? (
+              <Text testID="error-text" style={styles.errorText}>
+                {(mutation.error as Error).message}
+              </Text>
+            ) : null}
+            <Link href="/register" style={styles.link}>
+              Need an account? Register
+            </Link>
+          </BlurView>
+        </View>
       </View>
     </LinearGradient>
   );
@@ -80,6 +82,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
+  // Shadow lives on an unclipped wrapper — a shadow and `overflow: hidden`
+  // on the same view cancel each other out on iOS, so the rounded-corner
+  // clip needed for the blur has to happen on the inner view instead.
+  cardShadow: {
+    borderRadius: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 12,
+  },
   card: {
     borderRadius: 28,
     padding: 28,
@@ -87,11 +100,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 12,
   },
   heading: {
     fontSize: 28,
