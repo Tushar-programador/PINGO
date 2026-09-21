@@ -6,6 +6,7 @@ import { authRoutes } from './modules/auth/auth.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
 import { identitiesRoutes } from './modules/identities/identities.routes.js';
 import { liveProfilesRoutes } from './modules/live-profiles/live-profiles.routes.js';
+import { discoveryRoutes } from './modules/discovery/discovery.routes.js';
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({ logger: true });
@@ -34,6 +35,7 @@ export function buildApp(): FastifyInstance {
   app.register(usersRoutes);
   app.register(identitiesRoutes);
   app.register(liveProfilesRoutes);
+  app.register(discoveryRoutes);
 
   return app;
 }
