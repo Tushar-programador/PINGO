@@ -1,5 +1,7 @@
 # @pingo/mobile
 
+Part of the [pingo monorepo](../../README.md).
+
 Phase 1 foundation: login/register, Chat Identity creation, Go Live with a
 server-driven countdown, and a basic Discover list.
 
