@@ -1,7 +1,8 @@
 import { and, desc, eq, gt } from 'drizzle-orm';
 import { db } from '../../infrastructure/postgres/db.js';
-import { liveProfiles, users } from '../../infrastructure/postgres/schema.js';
+import { liveProfiles } from '../../infrastructure/postgres/schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
+import * as authService from '../auth/auth.service.js';
 import { identityExists } from '../identities/identities.service.js';
 import type { GoLiveInput } from './live-profiles.schemas.js';
 
@@ -20,8 +21,8 @@ async function findCurrentActive(userId: string) {
 }
 
 export async function goLive(userId: string, input: GoLiveInput) {
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
-  if (!user || user.status !== 'ACTIVE') {
+  const user = await authService.getUserById(userId);
+  if (user.status !== 'ACTIVE') {
     throw new AppError('ACCOUNT_NOT_ACTIVE', 'Account is not active', 403);
   }
 
