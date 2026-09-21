@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pingo
+      POSTGRES_PASSWORD: pingo
+      POSTGRES_DB: pingo
+    ports:
+      - "15432:5432"
+    volumes:
+      - pingo_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  pingo_postgres_data:
