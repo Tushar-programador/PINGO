@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '../../infrastructure/postgres/db.js';
 import { refreshTokens, users } from '../../infrastructure/postgres/schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
@@ -26,19 +26,23 @@ async function issueTokenPair(userId: string) {
 }
 
 export async function register(email: string, password: string) {
-  const existing = await db.select().from(users).where(eq(users.email, email));
+  const normalizedEmail = email.toLowerCase();
+
+  const existing = await db.select().from(users).where(eq(users.email, normalizedEmail));
   if (existing.length > 0) {
     throw new AppError('EMAIL_TAKEN', 'An account with this email already exists', 409);
   }
 
   const passwordHash = await hashPassword(password);
-  const [user] = await db.insert(users).values({ email, passwordHash }).returning();
+  const [user] = await db.insert(users).values({ email: normalizedEmail, passwordHash }).returning();
 
   return { user, ...(await issueTokenPair(user.id)) };
 }
 
 export async function login(email: string, password: string) {
-  const [user] = await db.select().from(users).where(eq(users.email, email));
+  const normalizedEmail = email.toLowerCase();
+
+  const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail));
   if (!user || user.status !== 'ACTIVE') {
     throw new AppError('INVALID_CREDENTIALS', 'Invalid email or password', 401);
   }
@@ -52,13 +56,24 @@ export async function login(email: string, password: string) {
 
 export async function refresh(refreshToken: string) {
   const tokenHash = hashToken(refreshToken);
-  const [stored] = await db.select().from(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash));
 
-  if (!stored || stored.revokedAt || stored.expiresAt.getTime() < Date.now()) {
+  const [revoked] = await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(refreshTokens.tokenHash, tokenHash), isNull(refreshTokens.revokedAt)))
+    .returning();
+
+  if (!revoked || revoked.expiresAt.getTime() < Date.now()) {
     throw new AppError('INVALID_REFRESH_TOKEN', 'Refresh token is invalid or expired', 401);
   }
 
-  await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.id, stored.id));
+  return issueTokenPair(revoked.userId);
+}
 
-  return issueTokenPair(stored.userId);
+export async function getUserById(userId: string) {
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  if (!user) {
+    throw new AppError('NOT_FOUND', 'User not found', 404);
+  }
+  return user;
 }
