@@ -78,3 +78,39 @@ Two ready-to-execute implementation plans for Phase 1:
 
 - [`2026-09-21-phase-1-backend-foundation.md`](./2026-09-21-phase-1-backend-foundation.md)
 - [`2026-09-21-phase-1-mobile-foundation.md`](./2026-09-21-phase-1-mobile-foundation.md)
+
+## 8. Carried forward from Phase 1's final review — Phase 2 prerequisites
+
+The Phase 1 backend's final whole-branch review surfaced a few things that
+are fine to ship now but must not be forgotten once Phase 2 (matchmaking +
+realtime) starts building on top of `live_profiles`/`refresh_tokens`:
+
+- **One shared "is this live profile actually live" predicate.** Because
+  there's no background expiry sweep, `status = 'ACTIVE'` alone is not
+  trustworthy — every caller must also check `expiresAt > now()`. Two
+  places already encode this rule by hand (`live-profiles.service.ts`,
+  `discovery.service.ts`); Phase 2's matchmaking pool will be a third.
+  Extract a single helper (or a DB view) before that lands, or a bug where
+  expired users stay matchable becomes very likely.
+- **Per-worker test databases.** `apps/api/vitest.config.ts` currently sets
+  `fileParallelism: false` to avoid a shared-Postgres truncation race
+  between test files. That's an acceptable stopgap for a 10-file suite; it
+  will not be once Phase 2 adds a lot more DB-touching tests. Move to one
+  database (or schema) per Vitest worker, keyed off `VITEST_POOL_ID`,
+  before the suite's wall-clock time becomes a problem.
+- **Session lifecycle is still minimal.** There's no logout, no
+  revoke-all-sessions, and no refresh-token-reuse-family invalidation (a
+  presented-but-already-revoked token 401s the one request but doesn't
+  invalidate the rest of that token's lineage). Fine for a foundation with
+  no real users yet; needs to land before any real client ships, and
+  certainly before Phase 5's moderation/Trust work needs to actually
+  terminate a session for cause.
+- **`live_profiles`'s exclusion constraint, not a unique index.** Phase 1
+  added `EXCLUDE USING gist (user_id WITH =, tstzrange(started_at,
+  expires_at) WITH &&) WHERE (status = 'ACTIVE')` to stop two concurrent
+  Go-Live calls from creating overlapping active profiles for one user. A
+  plain partial `UNIQUE` index on `(user_id) WHERE status = 'ACTIVE'` looks
+  like the obvious fix but is wrong for this schema — it would reject the
+  legitimate "user goes live again after their previous profile expired"
+  flow, since expired rows are never flipped out of `status = 'ACTIVE'`.
+  Keep the time-range-aware constraint when Phase 2 touches this table.
