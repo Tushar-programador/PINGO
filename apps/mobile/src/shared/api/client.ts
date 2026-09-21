@@ -11,7 +11,9 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, options: RequestInit = {}, auth = true): Promise<T> {
   const headers = new Headers(options.headers);
-  headers.set('Content-Type', 'application/json');
+  if (options.body !== undefined) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   if (auth) {
     const token = useAuthStore.getState().accessToken;
