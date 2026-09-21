@@ -5,6 +5,7 @@ import { AppError } from './shared/errors/AppError.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
 import { identitiesRoutes } from './modules/identities/identities.routes.js';
+import { liveProfilesRoutes } from './modules/live-profiles/live-profiles.routes.js';
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({ logger: true });
@@ -32,6 +33,7 @@ export function buildApp(): FastifyInstance {
   app.register(authRoutes);
   app.register(usersRoutes);
   app.register(identitiesRoutes);
+  app.register(liveProfilesRoutes);
 
   return app;
 }
