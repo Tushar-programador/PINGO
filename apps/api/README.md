@@ -1,5 +1,7 @@
 # @pingo/api
 
+Part of the [pingo monorepo](../../README.md).
+
 Phase 1 foundation: auth, Chat Identity, Live Profile, basic Discovery.
 
 ## Setup
